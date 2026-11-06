@@ -1,6 +1,11 @@
 import "server-only";
 import { z } from "zod";
 
+// Si APP_URL no está definida, Vercel provee VERCEL_URL automáticamente
+if (!process.env.APP_URL && process.env.VERCEL_URL) {
+  process.env.APP_URL = `https://${process.env.VERCEL_URL}`;
+}
+
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "Falta DATABASE_URL"),
   SESSION_SECRET: z
