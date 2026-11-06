@@ -1,13 +1,13 @@
 // NEXUS FF — Esquema de datos
-// SQLite para desarrollo local. Para producción se recomienda PostgreSQL
-// (ver README, sección "Pasar a PostgreSQL").
+// PostgreSQL para producción (Vercel + Neon/Supabase).
+// Para desarrollo local también se puede usar PostgreSQL local o una BD externa gratuita.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

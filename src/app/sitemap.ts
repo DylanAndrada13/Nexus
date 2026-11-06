@@ -5,20 +5,6 @@ import { env } from "@/lib/env";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = env.APP_URL;
 
-  const tournaments = await db.tournament.findMany({
-    where: { status: { not: "CANCELLED" } },
-    select: { slug: true, updatedAt: true },
-    orderBy: { startsAt: "desc" },
-    take: 200,
-  });
-
-  const teams = await db.team.findMany({
-    where: { suspended: false },
-    select: { id: true, updatedAt: true },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: base, lastModified: new Date(), changeFrequency: "daily", priority: 1 },
     { url: `${base}/torneos`, lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
@@ -28,19 +14,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/login`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
   ];
 
-  const tournamentRoutes: MetadataRoute.Sitemap = tournaments.map((t) => ({
-    url: `${base}/torneos/${t.slug}`,
-    lastModified: t.updatedAt,
-    changeFrequency: "daily" as const,
-    priority: 0.8,
-  }));
+  try {
+    const tournaments = await db.tournament.findMany({
+      where: { status: { not: "CANCELLED" } },
+      select: { slug: true, updatedAt: true },
+      orderBy: { startsAt: "desc" },
+      take: 200,
+    });
 
-  const teamRoutes: MetadataRoute.Sitemap = teams.map((t) => ({
-    url: `${base}/equipos/${t.id}`,
-    lastModified: t.updatedAt,
-    changeFrequency: "weekly" as const,
-    priority: 0.5,
-  }));
+    const teams = await db.team.findMany({
+      where: { suspended: false },
+      select: { id: true, updatedAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
 
-  return [...staticRoutes, ...tournamentRoutes, ...teamRoutes];
+    const tournamentRoutes: MetadataRoute.Sitemap = tournaments.map((t) => ({
+      url: `${base}/torneos/${t.slug}`,
+      lastModified: t.updatedAt,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    }));
+
+    const teamRoutes: MetadataRoute.Sitemap = teams.map((t) => ({
+      url: `${base}/equipos/${t.id}`,
+      lastModified: t.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
+    }));
+
+    return [...staticRoutes, ...tournamentRoutes, ...teamRoutes];
+  } catch {
+    // Si la base de datos no está disponible durante el build, devolvemos solo las rutas estáticas
+    return staticRoutes;
+  }
 }
