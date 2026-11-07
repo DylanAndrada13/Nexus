@@ -30,7 +30,15 @@ function createParticle(canvasWidth: number, canvasHeight: number): Particle {
   };
 }
 
-export function FireParticles({ count = 90 }: { count?: number }) {
+export function FireParticles({
+  count = 90,
+  fixed = false,
+  className = "",
+}: {
+  count?: number;
+  fixed?: boolean;
+  className?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -110,7 +118,9 @@ export function FireParticles({ count = 90 }: { count?: number }) {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none absolute inset-0 h-full w-full"
+      className={`pointer-events-none ${
+        fixed ? "fixed" : "absolute"
+      } inset-0 h-full w-full ${className}`}
       aria-hidden="true"
     />
   );

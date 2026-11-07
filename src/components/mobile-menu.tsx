@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { createPortal } from "react-dom";
 import {
   BarChart3,
   Bell,
@@ -10,13 +12,13 @@ import {
   LogOut,
   Menu,
   Radio,
-  Search,
   Trophy,
   UserRound,
   Users,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { FireParticles } from "@/components/fire-particles";
 import { logoutAction } from "@/actions/auth";
 
 type MobileUser = {
@@ -24,13 +26,28 @@ type MobileUser = {
   role: string;
 } | null;
 
-const links = [
+const mainLinks = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/torneos", label: "Torneos", icon: Trophy },
-  { href: "/resultados", label: "Resultados", icon: Radio },
   { href: "/ranking", label: "Rankings", icon: BarChart3 },
+  { href: "/resultados", label: "Resultados", icon: Radio },
   { href: "/#contacto", label: "Contacto", icon: Users },
 ];
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
+function roleLabel(role: string) {
+  if (role === "ADMIN") return "Administrador";
+  if (role === "CAPTAIN") return "Capitán";
+  return "Jugador";
+}
 
 export function MobileMenu({
   user,
@@ -40,17 +57,29 @@ export function MobileMenu({
   unread: number;
 }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!open) return;
+
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-    document.addEventListener("keydown", onKey);
+
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKey);
+
+    const media = window.matchMedia("(min-width: 768px)");
+    const onBreakpoint = () => {
+      if (media.matches) setOpen(false);
+    };
+    media.addEventListener("change", onBreakpoint);
+
     return () => {
+      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      media.removeEventListener("change", onBreakpoint);
     };
   }, [open]);
 
@@ -71,119 +100,180 @@ export function MobileMenu({
         {open ? <X size={18} /> : <Menu size={18} />}
       </button>
 
-      {open ? (
-        <div id="mobile-navigation" className="mobile-menu-panel">
-          <div className="flex items-end justify-between border-b border-line pb-5">
-            <Logo size="lg" />
-            <span className="badge badge-flame">Menú</span>
-          </div>
+      {open
+        ? createPortal(
+            <div
+              id="mobile-navigation"
+              className="mobile-menu-overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Menú de navegación"
+            >
+              <FireParticles
+                fixed
+                count={48}
+                className="site-particles mobile-menu-particles"
+              />
 
-          <form action="/torneos" method="get" className="search-box mt-5" role="search">
-            <Search size={15} className="shrink-0" aria-hidden="true" />
-            <input
-              type="search"
-              name="q"
-              placeholder="Buscar torneo…"
-              aria-label="Buscar torneos"
-            />
-          </form>
-
-          <nav className="mt-6" aria-label="Menú móvil">
-            {links.map((link, index) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="group flex items-center gap-3 border-b border-line py-4"
-                >
-                  <span className="mono w-5 text-[9px] text-flame/75">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="grid h-8 w-8 flex-none place-items-center rounded-md border border-line bg-white/[0.025] text-muted transition-colors group-hover:border-flame/40 group-hover:text-flame-soft">
-                    <Icon size={15} strokeWidth={1.8} />
-                  </span>
-                  <span className="display flex-1 text-2xl leading-none">{link.label}</span>
-                  <ChevronRight size={16} className="text-muted" />
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-7 space-y-3">
-            {user ? (
-              <>
-                <div className="flex items-center justify-between gap-3 border border-line bg-white/[0.025] p-3.5">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="avatar">
-                      {user.name
-                        .split(/\s+/)
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .map((part) => part[0]?.toUpperCase())
-                        .join("")}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm text-white">{user.name}</p>
-                      <p className="mono mt-0.5 text-[8px] uppercase tracking-[0.12em] text-flame-soft">
-                        {user.role === "ADMIN" ? "Administrador" : "Capitán"}
-                      </p>
-                    </div>
+              <div className="mobile-menu-inner">
+                <div className="mobile-menu-topbar">
+                  <div onClick={() => setOpen(false)}>
+                    <Logo size="md" />
                   </div>
-                  <Link
-                    href="/panel/notificaciones"
+                  <button
+                    type="button"
                     onClick={() => setOpen(false)}
-                    className="relative inline-flex items-center gap-2 text-muted hover:text-white"
-                    aria-label={`Notificaciones${unread ? `: ${unread} sin leer` : ""}`}
+                    className="mobile-menu-close"
+                    aria-label="Cerrar menú"
                   >
-                    <Bell size={16} />
+                    <X size={18} strokeWidth={1.9} />
+                  </button>
+                </div>
+
+                {user ? (
+                  <Link
+                    href={user.role === "ADMIN" ? "/admin" : "/panel"}
+                    onClick={() => setOpen(false)}
+                    className="mobile-menu-account"
+                  >
+                    <span className="avatar" aria-hidden="true">
+                      {initials(user.name)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="mobile-menu-account-title block truncate">
+                        {user.name}
+                      </span>
+                      <span className="mobile-menu-account-sub">
+                        {roleLabel(user.role)} · Ir al panel
+                      </span>
+                    </span>
                     {unread > 0 ? (
-                      <span className="grid h-5 min-w-5 place-items-center rounded-full bg-flame px-1 text-[9px] font-bold text-white">
+                      <span className="mobile-menu-unread">
                         {unread > 9 ? "9+" : unread}
                       </span>
                     ) : null}
+                    <ChevronRight
+                      size={16}
+                      className="mobile-menu-account-arrow"
+                      aria-hidden="true"
+                    />
                   </Link>
-                </div>
-                <Link
-                  href={user.role === "ADMIN" ? "/admin" : "/panel"}
-                  onClick={() => setOpen(false)}
-                  className="btn btn-primary btn-block"
-                >
-                  <UserRound size={15} />
-                  {user.role === "ADMIN" ? "Panel administrativo" : "Mi panel"}
-                </Link>
-                <form action={logoutAction}>
-                  <button type="submit" className="btn btn-secondary btn-block">
-                    <LogOut size={15} /> Cerrar sesión
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  onClick={() => setOpen(false)}
-                  className="btn btn-secondary btn-block"
-                >
-                  Iniciar sesión
-                </Link>
-                <Link
-                  href="/registro"
-                  onClick={() => setOpen(false)}
-                  className="btn btn-primary btn-block"
-                >
-                  Crear cuenta
-                </Link>
-              </>
-            )}
-          </div>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    className="mobile-menu-account"
+                  >
+                    <span className="mobile-menu-account-icon" aria-hidden="true">
+                      <UserRound size={17} strokeWidth={1.8} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="mobile-menu-account-title block">
+                        Iniciar sesión
+                      </span>
+                      <span className="mobile-menu-account-sub">
+                        Accedé a tu cuenta
+                      </span>
+                    </span>
+                    <ChevronRight
+                      size={16}
+                      className="mobile-menu-account-arrow"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                )}
 
-          <p className="mono mt-8 text-center text-[8px] uppercase tracking-[0.16em] text-[#6f6368]">
-            NEXUS FF · Free Fire Argentina
-          </p>
-        </div>
-      ) : null}
+                <nav className="mobile-menu-nav" aria-label="Secciones principales">
+                  {mainLinks.map((link) => {
+                    const Icon = link.icon;
+                    const active =
+                      link.href === "/"
+                        ? pathname === "/"
+                        : pathname === link.href ||
+                          pathname.startsWith(`${link.href}/`);
+
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setOpen(false)}
+                        className="mobile-menu-link"
+                        data-active={active ? "true" : "false"}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+                        <span className="mobile-menu-link-label">{link.label}</span>
+                        <ChevronRight
+                          size={15}
+                          className="mobile-menu-link-arrow"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    );
+                  })}
+                </nav>
+
+                <div className="mobile-menu-footer">
+                  {user ? (
+                    <div className="grid gap-2">
+                      <Link
+                        href={user.role === "ADMIN" ? "/admin" : "/panel"}
+                        onClick={() => setOpen(false)}
+                        className="btn btn-primary btn-block"
+                      >
+                        <UserRound size={15} aria-hidden="true" />
+                        {user.role === "ADMIN"
+                          ? "Panel administrativo"
+                          : "Mi panel"}
+                      </Link>
+                      <Link
+                        href="/panel/notificaciones"
+                        onClick={() => setOpen(false)}
+                        className="btn btn-secondary btn-block"
+                      >
+                        <Bell size={15} aria-hidden="true" />
+                        Notificaciones
+                        {unread > 0 ? (
+                          <span className="mobile-menu-unread">
+                            {unread > 9 ? "9+" : unread}
+                          </span>
+                        ) : null}
+                      </Link>
+                      <form action={logoutAction}>
+                        <button type="submit" className="btn btn-secondary btn-block">
+                          <LogOut size={15} aria-hidden="true" />
+                          Cerrar sesión
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href="/login"
+                        onClick={() => setOpen(false)}
+                        className="btn btn-secondary btn-block"
+                      >
+                        Ingresar
+                      </Link>
+                      <Link
+                        href="/registro"
+                        onClick={() => setOpen(false)}
+                        className="btn btn-primary btn-block"
+                      >
+                        Crear cuenta
+                      </Link>
+                    </div>
+                  )}
+
+                  <p className="mobile-menu-note">
+                    NEXUS FF · Free Fire Argentina
+                  </p>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

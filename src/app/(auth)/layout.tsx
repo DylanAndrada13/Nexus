@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ShieldCheck, Swords, Trophy, Users } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { FireParticles } from "@/components/fire-particles";
 
 const features = [
   {
@@ -26,7 +27,9 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="auth-shell flex min-h-screen flex-col">
+    <>
+      <FireParticles fixed count={54} className="site-particles" />
+      <div className="auth-shell relative z-10 flex min-h-screen flex-col">
       <header className="relative z-10 border-b border-white/10">
         <div className="container-nexus flex h-[72px] items-center justify-between gap-4">
           <Logo />
@@ -98,6 +101,7 @@ export default function AuthLayout({
           </p>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

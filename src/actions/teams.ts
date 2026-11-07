@@ -52,7 +52,9 @@ const memberSchema = z.object({
 
 function safeLogo(value: string | undefined): string | null {
   if (!value) return null;
-  if (value.startsWith("/uploads/") && !value.includes("..")) return value;
+  const isUpload =
+    value.startsWith("/uploads/") || value.startsWith("/api/uploads/");
+  if (isUpload && !value.includes("..")) return value;
   return null;
 }
 

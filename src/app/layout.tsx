@@ -23,7 +23,21 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
+function resolveMetadataBase() {
+  const raw =
+    process.env.APP_URL ??
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000");
+  try {
+    return new URL(raw);
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: resolveMetadataBase(),
   title: {
     default: "NEXUS FF · Torneos de Free Fire en Argentina",
     template: "%s · NEXUS FF",

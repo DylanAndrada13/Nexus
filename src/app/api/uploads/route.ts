@@ -1,9 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { UPLOADS_DIR } from "@/lib/uploads";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,10 +75,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const uploadsDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadsDir, { recursive: true });
+  await mkdir(UPLOADS_DIR, { recursive: true });
   const filename = `${randomUUID()}.${kind}`;
-  await writeFile(path.join(uploadsDir, filename), buffer);
+  await writeFile(path.join(UPLOADS_DIR, filename), buffer);
 
-  return NextResponse.json({ url: `/uploads/${filename}` });
+  return NextResponse.json({ url: `/api/uploads/${filename}` });
 }

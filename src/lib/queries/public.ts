@@ -451,6 +451,64 @@ export async function getLandingData() {
   };
 }
 
+export type HomeTeamOverview = {
+  id: string | null;
+  name: string | null;
+  tag: string | null;
+  logoUrl: string | null;
+  modality: Modality | null;
+  totalTeams: number;
+  tournamentsPlayed: number;
+  tournamentsWon: number;
+};
+
+/**
+ * Resumen liviano del equipo principal del usuario para la portada móvil.
+ * Cuenta solo inscripciones confirmadas y resultados ya publicados.
+ */
+export async function getHomeTeamOverview(
+  userId: string,
+): Promise<HomeTeamOverview> {
+  const teams = await db.team.findMany({
+    where: {
+      OR: [{ captainId: userId }, { members: { some: { userId } } }],
+    },
+    select: {
+      id: true,
+      name: true,
+      tag: true,
+      logoUrl: true,
+      modality: true,
+      registrations: {
+        where: { status: "CONFIRMED" },
+        select: { id: true },
+      },
+      results: {
+        where: { tournament: { resultsPublishedAt: { not: null } } },
+        select: { position: true },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const primary =
+    [...teams].sort(
+      (a, b) => b.registrations.length - a.registrations.length,
+    )[0] ?? null;
+
+  return {
+    id: primary?.id ?? null,
+    name: primary?.name ?? null,
+    tag: primary?.tag ?? null,
+    logoUrl: primary?.logoUrl ?? null,
+    modality: primary ? (primary.modality as Modality) : null,
+    totalTeams: teams.length,
+    tournamentsPlayed: primary?.registrations.length ?? 0,
+    tournamentsWon:
+      primary?.results.filter((result) => result.position === 1).length ?? 0,
+  };
+}
+
 export const DEFAULT_SETTINGS = {
   contact_email: "",
   contact_whatsapp: "",

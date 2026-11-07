@@ -5,6 +5,7 @@ import {
   BarChart3,
   CalendarDays,
   Check,
+  ChevronRight,
   Flame,
   Medal,
   Megaphone,
@@ -14,14 +15,15 @@ import {
   Users,
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { getLandingData } from "@/lib/queries/public";
+import { getHomeTeamOverview, getLandingData } from "@/lib/queries/public";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
+import { MODALITY_LABELS } from "@/lib/constants";
 import { ActionForm } from "@/components/forms/action-form";
 import { submitSupportMessageAction } from "@/actions/support";
 import { TournamentRow } from "@/components/tournament-row";
 import { RankingTable } from "@/components/ranking-table";
 import { SectionHeading } from "@/components/ui";
-import { FireParticles } from "@/components/fire-particles";
+import { OrganizationStats } from "@/components/organization-stats";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +46,7 @@ export default async function LandingPage() {
     settings,
   } = data;
 
+  const teamOverview = user ? await getHomeTeamOverview(user.id) : null;
   const teamCta = user ? "/panel/equipos/nuevo" : "/registro";
   const contactName = user?.name ?? "";
   const contactEmail = user?.email ?? "";
@@ -67,29 +70,14 @@ export default async function LandingPage() {
         </div>
       ) : null}
 
-      <div className="border-b border-line bg-[#0a0709] md:hidden">
-        <div className="container-nexus no-scrollbar flex gap-1.5 overflow-x-auto py-2.5">
-          <Link href="/torneos" className="filter-tab" data-active="true">
-            Torneos disponibles
-          </Link>
-          <Link href="/torneos?scope=todos" className="filter-tab">
-            En vivo / activos
-          </Link>
-          <Link href="/ranking" className="filter-tab">
-            Rankings
-          </Link>
-        </div>
-      </div>
-
       <section className="home-hero">
-        <FireParticles />
         <div className="container-nexus relative py-8 md:py-14 lg:py-16">
           <div className="grid items-center gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:gap-12">
             <div className="reveal">
               <p className="kicker">
                 Temporada {season} · Circuito Free Fire Argentina
               </p>
-              <h1 className="display mt-3 text-[clamp(2.75rem,7vw,5.35rem)]">
+              <h1 className="home-hero-title display mt-3 text-[clamp(2.75rem,7vw,5.35rem)]">
                 Acá se juega
                 <br />
                 <span className="display-outline">en serio.</span>
@@ -100,17 +88,17 @@ export default async function LandingPage() {
                 Argentina.
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-2.5">
-                <Link href="/torneos" className="btn btn-primary">
+              <div className="mt-6 grid grid-cols-[1.15fr_0.85fr] gap-2.5 md:flex md:flex-wrap">
+                <Link href="/torneos" className="btn btn-primary w-full md:w-auto">
                   Ver torneos
                   <ArrowUpRight size={15} aria-hidden="true" />
                 </Link>
-                <Link href={teamCta} className="btn btn-secondary">
-                  {user ? "Crear mi equipo" : "Registrarme"}
+                <Link href={teamCta} className="btn btn-secondary w-full md:w-auto">
+                  {user ? "Mi equipo" : "Registrarme"}
                 </Link>
               </div>
 
-              <ul className="mt-7 grid gap-2.5 border-t border-line pt-5 sm:grid-cols-3">
+              <ul className="mt-7 hidden gap-2.5 border-t border-line pt-5 sm:grid sm:grid-cols-3">
                 {proofPoints.map((point) => (
                   <li key={point} className="flex items-start gap-2 text-[11px] leading-relaxed text-[#a1979b]">
                     <span className="mt-0.5 grid h-4 w-4 flex-none place-items-center rounded-full border border-flame/30 bg-flame/[0.07] text-flame-soft">
@@ -123,6 +111,20 @@ export default async function LandingPage() {
             </div>
 
             <div>
+              <div className="mobile-home-heading md:hidden">
+                <span className="mobile-home-heading-icon" aria-hidden="true">
+                  <CalendarDays size={16} strokeWidth={1.9} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="mobile-home-heading-title">Próximos torneos</h2>
+                  <p className="mobile-home-heading-sub">Fecha, cupos y premios</p>
+                </div>
+                <Link href="/torneos" className="mobile-home-heading-action">
+                  Ver todos
+                  <ChevronRight size={13} aria-hidden="true" />
+                </Link>
+              </div>
+
               {upcoming.length > 0 ? (
                 <FeaturedCarousel tournaments={upcoming} />
               ) : (
@@ -145,46 +147,146 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          <div className="stat-grid relative mt-8 md:mt-11">
-            <div className="stat-card">
-              <span className="stat-icon">
-                <Trophy size={13} aria-hidden="true" />
-              </span>
-              <div className="stat-number">{formatNumber(stats.finishedTournaments)}</div>
-              <p className="stat-label">Torneos realizados</p>
-              <p className="stat-hint">Resultados publicados</p>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon">
-                <Users size={13} aria-hidden="true" />
-              </span>
-              <div className="stat-number">{formatNumber(stats.teamsParticipating)}</div>
-              <p className="stat-label">Equipos participantes</p>
-              <p className="stat-hint">Inscripciones confirmadas</p>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon">
-                <Medal size={13} aria-hidden="true" />
-              </span>
-              <div className="stat-number text-[clamp(1.25rem,2.6vw,2.05rem)]">
-                {formatCurrency(stats.prizesDelivered)}
-              </div>
-              <p className="stat-label">Premios entregados</p>
-              <p className="stat-hint">Según actas publicadas</p>
-            </div>
-            <div className="stat-card">
-              <span className="stat-icon">
-                <Swords size={13} aria-hidden="true" />
-              </span>
-              <div className="stat-number">{formatNumber(stats.playersRegistered)}</div>
-              <p className="stat-label">Jugadores registrados</p>
-              <p className="stat-hint">Cuentas activas</p>
-            </div>
+          <div className="relative mt-8 hidden md:block md:mt-11">
+            <OrganizationStats stats={stats} />
           </div>
         </div>
       </section>
 
-      <section className="container-nexus py-12 md:py-20" aria-labelledby="proximos">
+      <section
+        className="container-nexus pt-8 md:hidden"
+        aria-labelledby="tus-equipos"
+      >
+        <div className="mobile-home-heading">
+          <span className="mobile-home-heading-icon" aria-hidden="true">
+            <Users size={16} strokeWidth={1.9} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 id="tus-equipos" className="mobile-home-heading-title">
+              Tus equipos
+            </h2>
+            <p className="mobile-home-heading-sub">
+              {teamOverview?.name
+                ? "Tu historial competitivo"
+                : "Armá tu plantilla y competí"}
+            </p>
+          </div>
+          <Link
+            href={user ? "/panel/equipos" : "/registro"}
+            className="mobile-home-heading-action"
+          >
+            {user ? "Gestionar" : "Empezar"}
+            <ChevronRight size={13} aria-hidden="true" />
+          </Link>
+        </div>
+
+        {teamOverview?.name ? (
+          <div className="mobile-team-card">
+            <div className="mobile-team-head">
+              <span className="mobile-team-mark" aria-hidden="true">
+                {teamOverview.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={teamOverview.logoUrl} alt="" />
+                ) : (
+                  teamOverview.tag?.slice(0, 2) || "NX"
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="display truncate text-[1.35rem] leading-none text-white">
+                  {teamOverview.name}
+                </p>
+                <p className="mono mt-1.5 text-[8px] uppercase tracking-[0.12em] text-[#9b8e93]">
+                  {teamOverview.tag}
+                  {teamOverview.modality
+                    ? ` · ${MODALITY_LABELS[teamOverview.modality]}`
+                    : ""}
+                </p>
+              </div>
+              <Link
+                href={
+                  teamOverview.id
+                    ? `/panel/equipos/${teamOverview.id}`
+                    : "/panel/equipos"
+                }
+                className="mobile-team-link"
+                aria-label={`Ver ${teamOverview.name}`}
+              >
+                <ArrowUpRight size={15} aria-hidden="true" />
+              </Link>
+            </div>
+            <div className="mobile-team-stats">
+              <div className="mobile-team-stat">
+                <p className="mobile-team-stat-number is-outline">
+                  {formatNumber(teamOverview.tournamentsPlayed)}
+                </p>
+                <p className="mobile-team-stat-label">
+                  Torneos
+                  <br />
+                  jugados
+                </p>
+              </div>
+              <div className="mobile-team-stat">
+                <p className="mobile-team-stat-number">
+                  {formatNumber(teamOverview.tournamentsWon)}
+                </p>
+                <p className="mobile-team-stat-label">
+                  Torneos
+                  <br />
+                  ganados
+                </p>
+              </div>
+            </div>
+            {teamOverview.totalTeams > 1 ? (
+              <p className="border-t border-white/[0.07] px-4 py-2.5 text-center text-[10px] text-[#8f8388]">
+                +{teamOverview.totalTeams - 1} equipo
+                {teamOverview.totalTeams - 1 === 1 ? "" : "s"} más en tu panel
+              </p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mobile-team-empty">
+            <div className="flex items-start gap-3">
+              <span className="section-heading-icon" aria-hidden="true">
+                <Trophy size={15} strokeWidth={1.9} />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Todavía no tenés un equipo
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-[#9b8e93]">
+                  {user
+                    ? "Cargá tu plantilla, sumá jugadores y empezá a competir en los próximos torneos."
+                    : "Creá tu cuenta, armá tu escuadra y seguí tus inscripciones desde el panel."}
+                </p>
+              </div>
+            </div>
+            <Link href={teamCta} className="btn btn-primary btn-block mt-4">
+              {user ? "Crear mi equipo" : "Crear mi cuenta"}
+              <ArrowRight size={14} aria-hidden="true" />
+            </Link>
+          </div>
+        )}
+      </section>
+
+      <section className="container-nexus pb-10 pt-7 md:hidden">
+        <div className="mobile-home-heading">
+          <span className="mobile-home-heading-icon" aria-hidden="true">
+            <Flame size={16} strokeWidth={1.9} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="mobile-home-heading-title">NEXUS en números</h2>
+            <p className="mobile-home-heading-sub">
+              Temporada {season} · Free Fire Argentina
+            </p>
+          </div>
+        </div>
+        <OrganizationStats stats={stats} />
+      </section>
+
+      <section
+        className="container-nexus hidden py-12 md:block md:py-20"
+        aria-labelledby="proximos"
+      >
         <SectionHeading
           id="proximos"
           icon={<CalendarDays size={15} strokeWidth={1.9} />}

@@ -78,5 +78,7 @@ export function safeHttpUrl(value: string | null | undefined): string | null {
 
 export function isUploadedImage(value: string | null | undefined): boolean {
   if (!value) return false;
-  return value.startsWith("/uploads/") && !value.includes("..");
+  const isUpload =
+    value.startsWith("/uploads/") || value.startsWith("/api/uploads/");
+  return isUpload && !value.includes("..");
 }

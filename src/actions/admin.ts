@@ -46,7 +46,10 @@ function numberField(formData: FormData, key: string, fallback = 0): number {
 function safeImage(value: FormDataEntryValue | null): string | null {
   const stringValue = String(value ?? "").trim();
   if (!stringValue) return null;
-  if (stringValue.startsWith("/uploads/") && !stringValue.includes("..")) {
+  const isUpload =
+    stringValue.startsWith("/uploads/") ||
+    stringValue.startsWith("/api/uploads/");
+  if (isUpload && !stringValue.includes("..")) {
     return stringValue;
   }
   return null;

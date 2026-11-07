@@ -24,8 +24,10 @@ export async function SiteHeader() {
   return (
     <>
       <header className="site-header">
-        <div className="container-nexus flex h-[68px] items-center gap-3 md:h-[76px] md:gap-5">
-          <Logo />
+        <div className="container-nexus site-header-inner relative flex h-[68px] items-center gap-3 md:h-[76px] md:gap-5">
+          <div className="site-header-brand">
+            <Logo />
+          </div>
 
           <form
             action="/torneos"
@@ -100,7 +102,7 @@ export async function SiteHeader() {
             )}
           </div>
 
-          <div className="ml-auto flex items-center gap-2 md:hidden">
+          <div className="site-header-mobile-actions ml-auto flex items-center gap-2 md:hidden">
             {user ? (
               <Link
                 href="/panel/notificaciones"
